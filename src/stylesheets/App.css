@@ -1,0 +1,75 @@
+.App {
+  height: 100vh;
+  text-align: start;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr auto;
+  grid-template-areas:
+    'head'
+    'main'
+    'footer';
+}
+
+.App-header {
+  background-color: #282c34;
+  color: white;
+  grid-area: head;
+}
+
+.App-footer {
+  background-color: lightgray;
+  grid-area: footer;
+}
+
+.Graph-Holder {
+  background-color: #eeeeee;
+  grid-area: main;
+  display: flex;
+  flex-direction: column;
+}
+
+.Graph-Aside {
+  background-color: lightblue;
+  display: block;
+  position: absolute;
+  right: 0;
+  width: 350px;
+  height: 100%;
+  float: right;
+}
+
+.Graph-Controls {
+  background-color: #ccc;
+}
+
+.Graph-Viewport {
+  flex-grow: 1;
+  position: relative;
+}
+
+#cy {
+  left: 0;
+  right: 350px;
+  height: 100%;
+  position: absolute;
+  background-color: #fcfaed;
+  background-image: url('/cream-paper.png');
+  float: left;
+}
+
+.Graph-Controls {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.paletteItem {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  background-color: #ddd;
+}
+.paletteItem > svg {
+  width: 32px;
+  height: 32px;
+}
