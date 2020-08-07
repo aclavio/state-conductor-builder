@@ -4,67 +4,64 @@ class NodeEditorForm extends React.Component {
   constructor(props) {
     super(props);
     console.log('in NodeEditorForm constructor');
-    const node = props.node;
     this.state = {
-      nodeName: node.name || '',
-      nodeComment: node.comment || '',
-      nodeType: node.type || 'Task',
+      nodeName: props.nodeName,
+      nodeComment: props.nodeComment,
+      nodeType: props.nodeType,
+      nodeNext: props.nodeNext,
+      nodeResource: props.nodeResource,
     };
-
+    this.handleSubmit = this.handleSubmit.bind(this);
     this.handleInputChange = this.handleInputChange.bind(this);
   }
 
-  handleInputChange(e) {
+  handleSubmit(e) {
+    e.preventDefault();
+    console.log('in handleSubmit', this.state);
+    if (typeof this.props.onSubmit === 'function') {
+      this.props.onSubmit(Object.assign({}, this.state));
+    }
+  }
+
+  handleInputChange(name, e) {
     const target = e.target;
-    const { name, value } = target;
+    const { value } = target;
     this.setState({
       [name]: value,
     });
   }
 
-  static getDerivedStateFromProps(props, state) {
-    const node = props.node;
-    return {
-      nodeName: node.name || '',
-      nodeComment: node.comment || '',
-      nodeType: node.type || 'Task',
-    };
-  }
-
   render() {
-    const { id, onSubmit } = this.props;
+    const { className } = this.props;
     const types = ['Task', 'Choice', 'Wait', 'Succeed', 'Fail'];
+    const states = ['TEST1', 'TEST2', 'TEST3'];
 
     return (
-      <form id={id} onSubmit={(e) => onSubmit(e)} className="nodeEditorForm">
+      <form className={className} onSubmit={this.handleSubmit}>
         <div className="form-group">
           <label htmlFor="nodeName">Name</label>
           <input
-            name="nodeName"
             type="text"
             placeholder="name"
             value={this.state.nodeName}
-            onChange={this.handleInputChange}
+            onChange={(e) => this.handleInputChange('nodeName', e)}
             className="form-control"
           />
         </div>
         <div className="form-group">
           <label htmlFor="nodeComment">Comment</label>
-          <input
-            name="nodeComment"
-            type="text"
-            placeholder="description"
+          <textarea
+            placeholder="comment"
             value={this.state.nodeComment}
-            onChange={this.handleInputChange}
+            onChange={(e) => this.handleInputChange('nodeComment', e)}
             className="form-control"
           />
         </div>
         <div className="form-group">
           <label htmlFor="nodeType">State Type</label>
           <select
-            name="nodeType"
             value={this.state.nodeType}
-            onChange={this.handleInputChange}
+            onChange={(e) => this.handleInputChange('nodeType', e)}
             className="form-control"
           >
             {types.map((type) => (
@@ -74,7 +71,38 @@ class NodeEditorForm extends React.Component {
             ))}
           </select>
         </div>
-        <button className="btn btn-primary">Save</button>
+        {this.state.nodeType === 'Task' && (
+          <div className="card form-group">
+            <div className="card-body">
+              <h6 className="card-title">Task Properties</h6>
+              <div className="form-group">
+                <label htmlFor="nodeNext">Next</label>
+                <select
+                  value={this.state.nodeNext}
+                  onChange={(e) => this.handleInputChange('nodeNext', e)}
+                  className="form-control"
+                >
+                  {states.map((state) => (
+                    <option key={state} value={state}>
+                      {state}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label htmlFor="nodeResource">Resource</label>
+                <input
+                  type="text"
+                  placeholder="resource"
+                  value={this.state.nodeResource}
+                  onChange={(e) => this.handleInputChange('nodeResource', e)}
+                  className="form-control"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+        <input type="submit" value="Save" className="btn btn-primary" />
       </form>
     );
   }

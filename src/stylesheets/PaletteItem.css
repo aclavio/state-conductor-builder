@@ -1,0 +1,26 @@
+.paletteItem {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  cursor: grab !important;
+}
+
+.paletteTask {
+  background-image: url('/assets/images/rect.svg');
+}
+
+.paletteSucceed {
+  background-image: url('/assets/images/circle.svg');
+}
+
+.paletteChoice {
+  background-image: url('/assets/images/diamond.svg');
+}
+
+.paletteWait {
+  background-image: url('/assets/images/octogon.svg');
+}
+
+.paletteFail {
+  background-image: url('/assets/images/triangle.svg');
+}

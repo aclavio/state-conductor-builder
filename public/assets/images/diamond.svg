@@ -1,0 +1,4 @@
+<svg width="32" height="32"
+    xmlns="http://www.w3.org/2000/svg">
+    <rect x="0" y="0" width="16" height="16" stroke="green" strokeWidth="1" fill="yellow" transform="translate(15, 4) rotate(45)" />
+</svg>

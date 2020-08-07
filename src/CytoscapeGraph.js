@@ -17,8 +17,8 @@ class CytoscapeGraph extends React.Component {
         {
           selector: 'node',
           style: {
-            'background-color': '#eee',
-            'border-color': '#666',
+            'background-color': '#fff',
+            'border-color': '#555',
             'border-width': '1px',
             width: '45',
             height: '45',
@@ -30,8 +30,8 @@ class CytoscapeGraph extends React.Component {
           selector: 'edge',
           style: {
             width: 5,
-            'line-color': '#ccc',
-            'target-arrow-color': '#ccc',
+            'line-color': '#bbb',
+            'target-arrow-color': '#bbb',
             'target-arrow-shape': 'triangle',
             'curve-style': 'bezier',
           },
@@ -87,7 +87,7 @@ class CytoscapeGraph extends React.Component {
       },
       zoom: 1,
       minZoom: 0.5,
-      maxZoom: 50,
+      maxZoom: 10,
     }));
 
     if (typeof this.props.cy === 'function') {

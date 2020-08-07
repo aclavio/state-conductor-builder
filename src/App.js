@@ -1,6 +1,7 @@
 import React from 'react';
 import CytoscapeGraph from './CytoscapeGraph';
 import NodeEditorForm from './NodeEditorForm';
+import PaletteItem from './PaletteItem';
 import './stylesheets/App.css';
 
 class App extends React.Component {
@@ -9,7 +10,6 @@ class App extends React.Component {
     console.log('in App constructor');
     this.cyRef = null;
     this.cmbLayout = React.createRef();
-    this.txtFlowFile = React.createRef();
     this.state = {
       selectedNode: {
         ref: null,
@@ -17,8 +17,11 @@ class App extends React.Component {
         name: '',
         comment: '',
         type: 'Task',
+        resource: '',
       },
     };
+
+    this.onSubmitNodeEditor = this.onSubmitNodeEditor.bind(this);
   }
 
   addNodeClick(e) {
@@ -30,6 +33,7 @@ class App extends React.Component {
         name: 'new',
         comment: '',
         type: 'Task',
+        resource: '',
       },
       classes: ['Task'],
     });
@@ -54,6 +58,7 @@ class App extends React.Component {
   parseFlowFile(input) {
     let nodes = [];
     let edges = [];
+    let catches = [];
     let drawing = Object.assign({}, input.mlDomain.drawing);
     nodes.push({
       data: {
@@ -84,6 +89,20 @@ class App extends React.Component {
           position: drawing[stateName] || { x: 20, y: 20 },
           classes: [state.Type],
         });
+
+        if (state.Catch) {
+          state.Catch.forEach((catche) => {
+            catches.push({
+              data: {
+                id: `${stateName}-${catche.Next}`,
+                source: stateName,
+                target: catche.Next,
+              },
+              classes: ['error'],
+            });
+          });
+        }
+
         if ('Task' === state.Type) {
           if (!state.End) {
             edges.push({
@@ -122,44 +141,34 @@ class App extends React.Component {
             },
           });
         }
-
-        if (state.Catch) {
-          state.Catch.forEach((catches) => {
-            edges.push({
-              data: {
-                id: `${stateName}-${catches.Next}`,
-                source: stateName,
-                target: catches.Next,
-              },
-              classes: ['error'],
-            });
-          });
-        }
       });
     }
     return {
       nodes,
       edges,
+      catches,
     };
   }
 
-  loadFlowClick(e) {
-    e.preventDefault();
-    const cy = this.cyRef;
-    const txtFlowFile = this.txtFlowFile.current;
-    let flowFile = JSON.parse(txtFlowFile.value);
-    const elements = this.parseFlowFile(flowFile);
-    cy.nodes().remove();
-    cy.add(elements.nodes);
-    cy.add(elements.edges);
-    cy.fit();
+  loadFlowClick() {
+    const resp = prompt('flow file content:');
+    if (resp) {
+      const cy = this.cyRef;
+      const flowFile = JSON.parse(resp);
+      const elements = this.parseFlowFile(flowFile);
+      cy.nodes().remove();
+      cy.add(elements.nodes);
+      cy.add(elements.catches);
+      cy.add(elements.edges);
+      this.runLayoutClick();
+    }
   }
 
-  runLayoutClick(e) {
+  runLayoutClick() {
     const cy = this.cyRef;
     const layout = this.cmbLayout.current.value;
     cy.layout({ name: layout }).run();
-    cy.fit();
+    cy.fit(50);
   }
 
   onSelectNodes(nodes) {
@@ -183,6 +192,7 @@ class App extends React.Component {
         name: '',
         comment: '',
         type: 'Task',
+        resource: '',
       },
     });
   }
@@ -207,10 +217,6 @@ class App extends React.Component {
     });
   }
 
-  onDragPaletteItem(e) {
-    e.dataTransfer.setData('text/plain', e.target.dataset.type);
-  }
-
   onDropPaletteItem(e) {
     const cy = this.cyRef;
     let type = e.dataTransfer.getData('text/plain');
@@ -220,6 +226,8 @@ class App extends React.Component {
       data: {
         id: now.getTime(),
         name: `New ${type}`,
+        comment: '',
+        type: type,
       },
       position: {
         x: e.clientX,
@@ -229,7 +237,31 @@ class App extends React.Component {
     });
   }
 
+  onSubmitNodeEditor(data) {
+    console.log(data);
+    if (this.state.selectedNode && this.state.selectedNode.ref) {
+      const currNode = this.state.selectedNode.ref;
+      currNode.data({
+        id: data.nodeName,
+        name: data.nodeName,
+        comment: data.nodeComment,
+        type: data.nodeType,
+      });
+      currNode.classes(data.nodeType);
+      this.setState({
+        selectedNode: {
+          ref: currNode,
+          id: currNode.data('id'),
+          name: currNode.data('name'),
+          comment: currNode.data('comment'),
+          type: currNode.data('type'),
+        },
+      });
+    }
+  }
+
   render() {
+    const hasSelection = !!this.state.selectedNode.ref;
     return (
       <div className="App">
         <header className="App-header container-fluid">
@@ -237,101 +269,14 @@ class App extends React.Component {
         </header>
         <section className="Graph-Holder">
           <nav className="Graph-Controls container-fluid">
-            <div className="StatePalette">
-              <label
-                id="paletteTask"
-                data-type="Task"
-                className="paletteItem"
-                draggable="true"
-                onDragStart={(e) => this.onDragPaletteItem(e)}
-              >
-                <svg>
-                  <rect
-                    x="6"
-                    y="6"
-                    width="20"
-                    height="20"
-                    rx="5"
-                    ry="5"
-                    stroke="green"
-                    strokeWidth="1"
-                    fill="yellow"
-                  />
-                </svg>
-              </label>
-              <label
-                id="paletteChoice"
-                data-type="Choice"
-                className="paletteItem"
-                draggable="true"
-                onDragStart={(e) => this.onDragPaletteItem(e)}
-              >
-                <svg>
-                  <rect
-                    x="0"
-                    y="0"
-                    width="16"
-                    height="16"
-                    stroke="green"
-                    strokeWidth="1"
-                    fill="yellow"
-                    transform="translate(16, 6) rotate(45)"
-                  />
-                </svg>
-              </label>
-              <label
-                id="paletteWait"
-                data-type="Wait"
-                className="paletteItem"
-                draggable="true"
-                onDragStart={(e) => this.onDragPaletteItem(e)}
-              >
-                <svg>
-                  <polygon
-                    points="25,2.5 50,2.5 62.5,15 62.5,40 50,52.5 25,52.5 12.5,40 12.5,15"
-                    stroke="green"
-                    strokeWidth="2"
-                    fill="yellow"
-                    transform="translate(0, 5) scale(0.4)"
-                  />
-                </svg>
-              </label>
-              <label
-                id="paletteSucceed"
-                data-type="Succeed"
-                className="paletteItem"
-                draggable="true"
-                onDragStart={(e) => this.onDragPaletteItem(e)}
-              >
-                <svg>
-                  <circle
-                    cx="16"
-                    cy="16"
-                    r="10"
-                    stroke="green"
-                    strokeWidth="1"
-                    fill="yellow"
-                  />
-                </svg>
-              </label>
-              <label
-                id="paletteFail"
-                data-type="Fail"
-                className="paletteItem"
-                draggable="true"
-                onDragStart={(e) => this.onDragPaletteItem(e)}
-              >
-                <svg>
-                  <polygon
-                    x="5"
-                    y="5"
-                    points="15,5 5,25 25,25 15,5"
-                    stroke="green"
-                    strokeWidth="1"
-                    fill="yellow"
-                  />
-                </svg>
-              </label>
+            <div className="btn-toolbar">
+              <div className="btn-group btn-group-sm mr-2">
+                <PaletteItem type="Task" />
+                <PaletteItem type="Choice" />
+                <PaletteItem type="Wait" />
+                <PaletteItem type="Succeed" />
+                <PaletteItem type="Fail" />
+              </div>
             </div>
             <div className="btn-toolbar">
               <div className="btn-group btn-group-sm mr-2">
@@ -394,6 +339,14 @@ class App extends React.Component {
                   Align Vertical
                 </button>
               </div>
+              <div className="btn-group btn-group-sm mr-2">
+                <button
+                  onClick={(e) => this.loadFlowClick(e)}
+                  className="btn btn-outline-secondary"
+                >
+                  Load Flow
+                </button>
+              </div>
             </div>
           </nav>
           <div className="Graph-Viewport">
@@ -411,24 +364,17 @@ class App extends React.Component {
               }}
               onDrop={(e) => this.onDropPaletteItem(e)}
             ></CytoscapeGraph>
-            <aside className="Graph-Aside container-fluid">
-              <NodeEditorForm
-                //key={this.state.selectedNode.id}
-                node={this.state.selectedNode}
-              />
-              <form>
-                <div>
-                  <textarea
-                    id="txtInput"
-                    placeholder="Flow"
-                    ref={this.txtFlowFile}
-                  ></textarea>
-                  <button id="btnLoad" onClick={(e) => this.loadFlowClick(e)}>
-                    Load
-                  </button>
-                </div>
-              </form>
-            </aside>
+            {hasSelection && (
+              <aside className="Graph-Aside container-fluid">
+                <NodeEditorForm
+                  key={this.state.selectedNode.id}
+                  nodeName={this.state.selectedNode.name}
+                  nodeComment={this.state.selectedNode.comment}
+                  nodeType={this.state.selectedNode.type}
+                  onSubmit={this.onSubmitNodeEditor}
+                />
+              </aside>
+            )}
           </div>
         </section>
         <footer className="App-footer container-fluid">footer content</footer>

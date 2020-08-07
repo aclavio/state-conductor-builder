@@ -29,7 +29,7 @@
 }
 
 .Graph-Aside {
-  background-color: lightblue;
+  background-color: #f1f1f1;
   display: block;
   position: absolute;
   right: 0;
@@ -39,7 +39,9 @@
 }
 
 .Graph-Controls {
-  background-color: #ccc;
+  background-color: #dcdcdc;
+  padding-top: 0.2rem;
+  padding-bottom: 0.3rem;
 }
 
 .Graph-Viewport {
@@ -49,7 +51,7 @@
 
 #cy {
   left: 0;
-  right: 350px;
+  right: 0;
   height: 100%;
   position: absolute;
   background-color: #fcfaed;
@@ -61,15 +63,4 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-}
-
-.paletteItem {
-  display: inline-block;
-  width: 32px;
-  height: 32px;
-  background-color: #ddd;
-}
-.paletteItem > svg {
-  width: 32px;
-  height: 32px;
 }
