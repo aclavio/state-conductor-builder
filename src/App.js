@@ -2,6 +2,7 @@ import React from 'react';
 import CytoscapeGraph from './CytoscapeGraph';
 import NodeEditorForm from './NodeEditorForm';
 import PaletteItem from './PaletteItem';
+import StateMachineList from './StateMachineList';
 import './stylesheets/App.css';
 
 class App extends React.Component {
@@ -22,6 +23,7 @@ class App extends React.Component {
     };
 
     this.onSubmitNodeEditor = this.onSubmitNodeEditor.bind(this);
+    this.onClickLoadMachine = this.onClickLoadMachine.bind(this);
   }
 
   addNodeClick(e) {
@@ -260,12 +262,23 @@ class App extends React.Component {
     }
   }
 
+  onClickLoadMachine(machine) {
+    const cy = this.cyRef;
+    const elements = this.parseFlowFile(machine);
+    cy.nodes().remove();
+    cy.add(elements.nodes);
+    cy.add(elements.catches);
+    cy.add(elements.edges);
+    this.runLayoutClick();
+  }
+
   render() {
     const hasSelection = !!this.state.selectedNode.ref;
     return (
       <div className="App">
         <header className="App-header container-fluid">
           <h1>State Conductor Builder</h1>
+          <StateMachineList handleClick={this.onClickLoadMachine} />
         </header>
         <section className="Graph-Holder">
           <nav className="Graph-Controls container-fluid">
