@@ -8,6 +8,12 @@ module.exports = {
           value: 'envelope-test',
         },
       ],
+      drawing: {
+        'needs-envelope': { x: 0, y: 100 },
+        'needs-headers': { x: 0, y: 200 },
+        'needs-triples': { x: 0, y: 300 },
+        success: { x: 0, y: 400 },
+      },
     },
     StartAt: 'needs-envelope',
     States: {

@@ -1,5 +1,6 @@
 import React from 'react';
 import Cytoscape from 'cytoscape';
+import edgehandles from 'cytoscape-edgehandles';
 import './stylesheets/CytoscapeGraph.css';
 
 class CytoscapeGraph extends React.Component {
@@ -10,18 +11,22 @@ class CytoscapeGraph extends React.Component {
   }
 
   componentDidMount() {
+    Cytoscape.use(edgehandles);
     const cy = (this._cy = new Cytoscape({
       container: this.containerRef.current,
       elements: [],
       style: [
         {
-          selector: 'node',
+          //selector: 'node',
+          selector: '[name]',
           style: {
             'background-color': '#fff',
             'border-color': '#555',
             'border-width': '1px',
-            width: '45',
-            height: '45',
+            'text-valign': 'center',
+            width: 'label',
+            height: 'label',
+            padding: '10px',
             shape: 'rectangle',
             label: 'data(name)',
           },
@@ -44,6 +49,12 @@ class CytoscapeGraph extends React.Component {
           },
         },
         {
+          selector: '.Start',
+          style: {
+            shape: 'rectangle',
+          },
+        },
+        {
           selector: '.Task',
           style: {
             shape: 'round-rectangle',
@@ -52,7 +63,7 @@ class CytoscapeGraph extends React.Component {
         {
           selector: '.Choice',
           style: {
-            shape: 'diamond',
+            shape: 'cut-rectangle',
           },
         },
         {
@@ -70,7 +81,8 @@ class CytoscapeGraph extends React.Component {
         {
           selector: '.Fail',
           style: {
-            shape: 'round-triangle',
+            //shape: 'round-triangle',
+            shape: 'hexagon',
           },
         },
         {
@@ -80,15 +92,82 @@ class CytoscapeGraph extends React.Component {
             'border-width': '2px',
           },
         },
+        /* edgehandle extenstion styles */
+        {
+          selector: '.eh-handle',
+          style: {
+            'background-color': 'red',
+            width: 12,
+            height: 12,
+            shape: 'ellipse',
+            'overlay-opacity': 0,
+            'border-width': 12, // makes the handle easier to hit
+            'border-opacity': 0,
+          },
+        },
+        {
+          selector: '.eh-hover',
+          style: {
+            'background-color': 'red',
+          },
+        },
+        {
+          selector: '.eh-source',
+          style: {
+            'border-width': 2,
+            'border-color': 'red',
+          },
+        },
+        {
+          selector: '.eh-target',
+          style: {
+            'border-width': 2,
+            'border-color': 'red',
+          },
+        },
+        {
+          selector: '.eh-preview, .eh-ghost-edge',
+          style: {
+            'background-color': 'red',
+            'line-color': 'red',
+            'target-arrow-color': 'red',
+            'source-arrow-color': 'red',
+          },
+        },
+        {
+          selector: '.eh-ghost-edge.eh-preview-active',
+          style: {
+            opacity: 0,
+          },
+        },
       ],
       layout: {
-        name: 'grid',
-        rows: 2,
+        //name: 'grid',
+        //rows: 2,
+        name: 'preset',
       },
       zoom: 1,
       minZoom: 0.5,
       maxZoom: 10,
     }));
+
+    cy.edgehandles({
+      snap: true,
+      handleNodes: '[type="Task"],[type="Wait"],[type="Choice"],[type="Start"]',
+      handlePosition: function (node) {
+        return 'middle bottom';
+      },
+      complete: (sourceNode, targetNode) => {
+        console.log('new edge:', sourceNode, targetNode);
+        if (typeof this.props.onLinkNodes === 'function') {
+          this.props.onLinkNodes(sourceNode, targetNode);
+        }
+      },
+      edgeType: (sourceNode, targetNode) => {
+        // disallow linking to the 'start' node
+        return targetNode.data('name') === 'START' ? null : 'flat';
+      },
+    });
 
     if (typeof this.props.cy === 'function') {
       this.props.cy(cy);

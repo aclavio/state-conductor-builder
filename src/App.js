@@ -1,9 +1,10 @@
 import React from 'react';
 import CytoscapeGraph from './CytoscapeGraph';
 import NodeEditorForm from './NodeEditorForm';
-import PaletteItem from './PaletteItem';
+import GraphControls from './GraphControls';
 import StateMachineList from './StateMachineList';
 import util from './lib/utilities';
+import StateMachineDefinition from './StateMachineDefinition';
 import './stylesheets/App.css';
 
 class App extends React.Component {
@@ -13,6 +14,7 @@ class App extends React.Component {
     this.cyRef = null;
     this.cmbLayout = React.createRef();
     this.state = {
+      machine: null,
       selectedNode: {
         ref: null,
         id: null,
@@ -25,25 +27,31 @@ class App extends React.Component {
 
     this.onSubmitNodeEditor = this.onSubmitNodeEditor.bind(this);
     this.onClickLoadMachine = this.onClickLoadMachine.bind(this);
+    this.onLinkNodes = this.onLinkNodes.bind(this);
   }
 
-  addNodeClick(e) {
+  newNodeClick(type) {
     const cy = this.cyRef;
-    cy.add({
+    const extent = cy.extent();
+    let now = new Date();
+    let node = {
       group: 'nodes',
       data: {
-        id: new Date().getTime(),
-        name: 'new',
+        id: now.getTime(),
+        name: `New ${type}`,
         comment: '',
-        type: 'Task',
-        resource: '',
+        type: type,
       },
-      classes: ['Task'],
-    });
-    cy.fit();
+      position: {
+        x: extent.x1 + extent.w / 2,
+        y: extent.y1 + extent.h / 2,
+      },
+      classes: [type],
+    };
+    cy.add(node);
   }
 
-  removeNodeClick(e) {
+  removeNodeClick() {
     if (this.state.selectedNode.ref) {
       this.state.selectedNode.ref.remove();
       this.onUnselectNodes();
@@ -51,7 +59,7 @@ class App extends React.Component {
     }
   }
 
-  onPrintClick(e) {
+  onPrintClick() {
     const cy = this.cyRef;
     cy.nodes().forEach((elem) => {
       console.log('element:', elem.data('name'), 'pos:', elem.position());
@@ -64,18 +72,49 @@ class App extends React.Component {
       const cy = this.cyRef;
       const flowFile = JSON.parse(resp);
       const elements = util.parseFlowFile(flowFile);
+      const def = new StateMachineDefinition('test', flowFile);
+      console.log(def.stateNames());
+      console.log(def.toJson());
       cy.nodes().remove();
-      cy.add(elements.nodes);
-      cy.add(elements.catches);
-      cy.add(elements.edges);
-      this.runLayoutClick();
+      //cy.add(elements.nodes);
+      cy.add(def.getNodes());
+      cy.add(def.getEdges());
+      //cy.add(elements.catches);
+      //cy.add(elements.edges);
+      this.runLayoutPreset();
+      this.setState({
+        machine: def,
+      });
     }
   }
 
-  runLayoutClick() {
+  runLayoutPreset() {
+    this.runLayout({ name: 'preset' });
+  }
+
+  runLayoutGrid() {
+    this.runLayout({ name: 'grid' });
+  }
+
+  runLayoutBreadthFirst() {
+    this.runLayout({ name: 'breadthfirst' });
+  }
+
+  runLayoutCircle() {
+    this.runLayout({ name: 'circle' });
+  }
+
+  runLayoutConcentric() {
+    this.runLayout({ name: 'concentric' });
+  }
+
+  runLayoutCose() {
+    this.runLayout({ name: 'cose' });
+  }
+
+  runLayout(layout) {
     const cy = this.cyRef;
-    const layout = this.cmbLayout.current.value;
-    cy.layout({ name: layout }).run();
+    cy.layout(layout).run();
     cy.fit(50);
   }
 
@@ -171,11 +210,32 @@ class App extends React.Component {
   onClickLoadMachine(machine) {
     const cy = this.cyRef;
     const elements = util.parseFlowFile(machine);
+    const def = new StateMachineDefinition('test', machine);
     cy.nodes().remove();
-    cy.add(elements.nodes);
-    cy.add(elements.catches);
-    cy.add(elements.edges);
-    this.runLayoutClick();
+    cy.add(def.getNodes());
+    cy.add(def.getEdges());
+    //cy.add(elements.nodes);
+    //cy.add(elements.catches);
+    //cy.add(elements.edges);
+    this.runLayoutPreset();
+    this.setState({
+      machine: def,
+    });
+  }
+
+  onLinkNodes(start, end) {
+    const cy = this.cyRef;
+    console.log('linking nodes:', start.data('name'), end.data('name'));
+    const machine = this.state.machine;
+    const source = machine.getStateByName(start.data('name'));
+    if (source) {
+      console.log('found source node:', source);
+      source.setNext(end.data('name'));
+      cy.edges().remove();
+      cy.add(machine.getEdges());
+    } else {
+      console.warn('could not find source node', start);
+    }
   }
 
   render() {
@@ -188,85 +248,20 @@ class App extends React.Component {
         </header>
         <section className="Graph-Holder">
           <nav className="Graph-Controls container-fluid">
-            <div className="btn-toolbar">
-              <div className="btn-group btn-group-sm mr-2">
-                <PaletteItem type="Task" />
-                <PaletteItem type="Choice" />
-                <PaletteItem type="Wait" />
-                <PaletteItem type="Succeed" />
-                <PaletteItem type="Fail" />
-              </div>
-            </div>
-            <div className="btn-toolbar">
-              <div className="btn-group btn-group-sm mr-2">
-                <button
-                  id="btnAddNode"
-                  onClick={(e) => this.addNodeClick(e)}
-                  className="btn btn-outline-secondary"
-                >
-                  New Node
-                </button>
-                <button
-                  id="btnRemoveNode"
-                  onClick={(e) => this.removeNodeClick(e)}
-                  className="btn btn-outline-secondary"
-                >
-                  Remove
-                </button>
-                <button
-                  id="btnPrint"
-                  onClick={(e) => this.onPrintClick(e)}
-                  className="btn btn-outline-secondary"
-                >
-                  Print
-                </button>
-              </div>
-              <div className="input-group input-group-sm mr-2">
-                <select
-                  id="cmbLayout"
-                  ref={this.cmbLayout}
-                  className="form-control"
-                >
-                  <option value="grid">Grid</option>
-                  <option value="breadthfirst">Breadth-First</option>
-                  <option value="preset">Preset</option>
-                  <option value="circle">Circle</option>
-                  <option value="concentric">Concentric</option>
-                  <option value="cose">Cose</option>
-                </select>
-                <div className="input-group-append">
-                  <button
-                    id="btnRunLayout"
-                    onClick={(e) => this.runLayoutClick(e)}
-                    className="btn btn-outline-secondary"
-                  >
-                    Run
-                  </button>
-                </div>
-              </div>
-              <div className="btn-group btn-group-sm mr-2">
-                <button
-                  onClick={(e) => this.onAlignHorizatonal(e)}
-                  className="btn btn-outline-secondary"
-                >
-                  Align Horizontal
-                </button>
-                <button
-                  onClick={(e) => this.onAlignVertical(e)}
-                  className="btn btn-outline-secondary"
-                >
-                  Align Vertical
-                </button>
-              </div>
-              <div className="btn-group btn-group-sm mr-2">
-                <button
-                  onClick={(e) => this.loadFlowClick(e)}
-                  className="btn btn-outline-secondary"
-                >
-                  Load Flow
-                </button>
-              </div>
-            </div>
+            <GraphControls
+              onAlignHorizatonal={() => this.onAlignHorizatonal()}
+              onAlignVertical={() => this.onAlignVertical()}
+              loadFlowClick={() => this.loadFlowClick()}
+              removeNodeClick={() => this.removeNodeClick()}
+              onPrintClick={() => this.onPrintClick()}
+              newNodeClick={(type) => this.newNodeClick(type)}
+              runLayoutBreadthFirst={() => this.runLayoutBreadthFirst()}
+              runLayoutCircle={() => this.runLayoutCircle()}
+              runLayoutConcentric={() => this.runLayoutConcentric()}
+              runLayoutCose={() => this.runLayoutCose()}
+              runLayoutGrid={() => this.runLayoutGrid()}
+              runLayoutPreset={() => this.runLayoutPreset()}
+            ></GraphControls>
           </nav>
           <div className="Graph-Viewport">
             <CytoscapeGraph
@@ -282,6 +277,7 @@ class App extends React.Component {
                 //console.log(e.clientX, e.clientY);
               }}
               onDrop={(e) => this.onDropPaletteItem(e)}
+              onLinkNodes={this.onLinkNodes}
             ></CytoscapeGraph>
             {hasSelection && (
               <aside className="Graph-Aside container-fluid">
