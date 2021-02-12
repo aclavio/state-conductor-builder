@@ -32,9 +32,14 @@ class NodeEditorForm extends React.Component {
   }
 
   render() {
-    const { className } = this.props;
+    const { className, stateNames = [] } = this.props;
     const types = ['Task', 'Choice', 'Wait', 'Succeed', 'Fail'];
-    const states = ['TEST1', 'TEST2', 'TEST3'];
+    const bools = ['true', 'false'];
+
+    const filteredStateNames = stateNames.filter((name) => {
+      return name !== 'START';
+    });
+    filteredStateNames.unshift('');
 
     return (
       <form className={className} onSubmit={this.handleSubmit}>
@@ -76,20 +81,6 @@ class NodeEditorForm extends React.Component {
             <div className="card-body">
               <h6 className="card-title">Task Properties</h6>
               <div className="form-group">
-                <label htmlFor="nodeNext">Next</label>
-                <select
-                  value={this.state.nodeNext}
-                  onChange={(e) => this.handleInputChange('nodeNext', e)}
-                  className="form-control"
-                >
-                  {states.map((state) => (
-                    <option key={state} value={state}>
-                      {state}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
                 <label htmlFor="nodeResource">Resource</label>
                 <input
                   type="text"
@@ -98,6 +89,30 @@ class NodeEditorForm extends React.Component {
                   onChange={(e) => this.handleInputChange('nodeResource', e)}
                   className="form-control"
                 />
+              </div>
+              <div className="form-group">
+                <label htmlFor="nodeEnd">End</label>
+                <select className="form-control">
+                  {bools.map((val) => (
+                    <option key={val} value={val}>
+                      {val}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label htmlFor="nodeNext">Next</label>
+                <select
+                  value={this.state.nodeNext}
+                  onChange={(e) => this.handleInputChange('nodeNext', e)}
+                  className="form-control"
+                >
+                  {filteredStateNames.map((state) => (
+                    <option key={state} value={state}>
+                      {state}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>

@@ -1,3 +1,23 @@
+function getStateMachineSkeleton() {
+  return {
+    Comment: '',
+    mlDomain: {
+      context: [],
+      drawing: {},
+    },
+    StartAt: 'New Task',
+    States: {
+      'New Task': {
+        Type: 'Task',
+        Comment: '',
+        Resource: '',
+        Next: '',
+        End: true,
+      },
+    },
+  };
+}
+
 class StateMachineState {
   constructor(name, def = {}, drawing = {}) {
     this.name = name;
@@ -60,17 +80,19 @@ class StateMachineState {
           },
         });
       }
-      this.def.Choices.forEach((choice) => {
-        edges.push({
-          data: {
-            id: `${this.name}-${choice.Next}`,
-            source: this.name,
-            target: choice.Next,
-          },
+      if (Array.isArray(this.def.Choices)) {
+        this.def.Choices.forEach((choice) => {
+          edges.push({
+            data: {
+              id: `${this.name}-${choice.Next}`,
+              source: this.name,
+              target: choice.Next,
+            },
+          });
         });
-      });
+      }
     } else if ('Fail' !== this.def.Type && 'Succeed' !== this.def.Type) {
-      if (!this.def.End) {
+      if (!this.def.End && this.def.Next) {
         edges.push({
           data: {
             id: `${this.name}-${this.def.Next}`,
@@ -96,7 +118,8 @@ class StateMachineState {
 }
 
 class StateMachineDefinition {
-  constructor(name, def = {}) {
+  constructor(name, def) {
+    def = def || getStateMachineSkeleton();
     this.name = name;
     this.def = def;
     this.comment = def.Comment;
@@ -155,6 +178,18 @@ class StateMachineDefinition {
       edges = edges.concat(state.getEdges(includeCatches));
     });
     return edges;
+  }
+
+  addState(name, data, loc) {
+    const names = this.stateNames();
+    if (!names.includes(name)) {
+      const state = new StateMachineState(name, data, loc);
+      this.states.push(state);
+      return state.getNode();
+    } else {
+      console.warn(`a state with name "${name}" already exists`);
+    }
+    return null;
   }
 }
 

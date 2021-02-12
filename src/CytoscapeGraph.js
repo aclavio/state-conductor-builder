@@ -39,6 +39,7 @@ class CytoscapeGraph extends React.Component {
             'target-arrow-color': '#bbb',
             'target-arrow-shape': 'triangle',
             'curve-style': 'bezier',
+            //'curve-style': 'taxi',
           },
         },
         {
@@ -184,6 +185,12 @@ class CytoscapeGraph extends React.Component {
     cy.on('unselect', 'node', (evt) => {
       if (typeof this.props.onUnselectNodes === 'function') {
         this.props.onUnselectNodes();
+      }
+    });
+
+    cy.ready((evt) => {
+      if (typeof this.props.onReady === 'function') {
+        this.props.onReady();
       }
     });
   }

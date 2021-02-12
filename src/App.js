@@ -3,8 +3,10 @@ import CytoscapeGraph from './CytoscapeGraph';
 import NodeEditorForm from './NodeEditorForm';
 import GraphControls from './GraphControls';
 import StateMachineList from './StateMachineList';
-import util from './lib/utilities';
+//import util from './lib/utilities';
 import StateMachineDefinition from './StateMachineDefinition';
+import Modal from './Modal';
+//import $ from 'jquery';
 import './stylesheets/App.css';
 
 class App extends React.Component {
@@ -12,9 +14,8 @@ class App extends React.Component {
     super(props);
     console.log('in App constructor');
     this.cyRef = null;
-    this.cmbLayout = React.createRef();
     this.state = {
-      machine: null,
+      machine: new StateMachineDefinition('New State Machine'),
       selectedNode: {
         ref: null,
         id: null,
@@ -25,30 +26,47 @@ class App extends React.Component {
       },
     };
 
+    this.onGraphReady = this.onGraphReady.bind(this);
     this.onSubmitNodeEditor = this.onSubmitNodeEditor.bind(this);
     this.onClickLoadMachine = this.onClickLoadMachine.bind(this);
     this.onLinkNodes = this.onLinkNodes.bind(this);
   }
 
+  onGraphReady() {
+    const cy = this.cyRef;
+    const machine = this.state.machine;
+    cy.add(machine.getNodes());
+    cy.add(machine.getEdges());
+    this.runLayoutPreset();
+  }
+
   newNodeClick(type) {
     const cy = this.cyRef;
+    const machine = this.state.machine;
+    const stateNames = machine.stateNames();
     const extent = cy.extent();
-    let now = new Date();
-    let node = {
-      group: 'nodes',
-      data: {
-        id: now.getTime(),
-        name: `New ${type}`,
-        comment: '',
-        type: type,
+
+    let idx = 1;
+    let nodeName = `New ${type} ${idx}`;
+    while (stateNames.includes(nodeName)) {
+      nodeName = `New ${type} ${++idx}`;
+    }
+
+    const node = machine.addState(
+      nodeName,
+      {
+        Comment: '',
+        Type: type,
       },
-      position: {
+      {
         x: extent.x1 + extent.w / 2,
         y: extent.y1 + extent.h / 2,
-      },
-      classes: [type],
-    };
-    cy.add(node);
+      }
+    );
+
+    if (node) {
+      cy.add(node).select();
+    }
   }
 
   removeNodeClick() {
@@ -71,21 +89,29 @@ class App extends React.Component {
     if (resp) {
       const cy = this.cyRef;
       const flowFile = JSON.parse(resp);
-      const elements = util.parseFlowFile(flowFile);
       const def = new StateMachineDefinition('test', flowFile);
       console.log(def.stateNames());
       console.log(def.toJson());
       cy.nodes().remove();
-      //cy.add(elements.nodes);
       cy.add(def.getNodes());
       cy.add(def.getEdges());
-      //cy.add(elements.catches);
-      //cy.add(elements.edges);
       this.runLayoutPreset();
       this.setState({
         machine: def,
       });
     }
+  }
+
+  onSaveChangesModalOk() {
+    this.setState({
+      showSaveChangesModal: false,
+    });
+  }
+
+  onSaveChangesModalClose() {
+    this.setState({
+      showSaveChangesModal: false,
+    });
   }
 
   runLayoutPreset() {
@@ -209,14 +235,10 @@ class App extends React.Component {
 
   onClickLoadMachine(machine) {
     const cy = this.cyRef;
-    const elements = util.parseFlowFile(machine);
     const def = new StateMachineDefinition('test', machine);
     cy.nodes().remove();
     cy.add(def.getNodes());
     cy.add(def.getEdges());
-    //cy.add(elements.nodes);
-    //cy.add(elements.catches);
-    //cy.add(elements.edges);
     this.runLayoutPreset();
     this.setState({
       machine: def,
@@ -269,6 +291,7 @@ class App extends React.Component {
               cy={(cy) => {
                 this.cyRef = cy;
               }}
+              onReady={this.onGraphReady}
               onSelectNodes={(nodes) => this.onSelectNodes(nodes)}
               onUnselectNodes={() => this.onUnselectNodes()}
               onDragEnter={(e) => e.preventDefault()}
@@ -286,6 +309,7 @@ class App extends React.Component {
                   nodeName={this.state.selectedNode.name}
                   nodeComment={this.state.selectedNode.comment}
                   nodeType={this.state.selectedNode.type}
+                  stateNames={this.state.machine.stateNames()}
                   onSubmit={this.onSubmitNodeEditor}
                 />
               </aside>
@@ -293,6 +317,21 @@ class App extends React.Component {
           </div>
         </section>
         <footer className="App-footer container-fluid">footer content</footer>
+        <div className="modal-root">
+          {this.state.showSaveChangesModal && (
+            <Modal
+              title="Save Changes?"
+              okButtonLabel="Save"
+              okButtonStyle="btn-success"
+              closeButtonLabel="Discard"
+              closeButtonStyle="btn-danger"
+              onClickOk={() => this.onSaveChangesModalOk()}
+              onClickClose={() => this.onSaveChangesModalClose()}
+            >
+              Save your changes?
+            </Modal>
+          )}
+        </div>
       </div>
     );
   }
