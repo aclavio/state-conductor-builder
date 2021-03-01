@@ -15,7 +15,7 @@ class App extends React.Component {
     console.log('in App constructor');
     this.cyRef = null;
     this.state = {
-      machine: new StateMachineDefinition('New State Machine'),
+      machine: null,
       selectedNode: {
         ref: null,
         id: null,
@@ -33,11 +33,24 @@ class App extends React.Component {
   }
 
   onGraphReady() {
+    this.loadStateMachine('New State Machine');
+  }
+
+  onViewFit() {
+    this.cyRef.fit(50);
+  }
+
+  loadStateMachine(name, machineJson) {
+    // assumes it's safe to load a new machine any previous changes have been saved/discarded
     const cy = this.cyRef;
-    const machine = this.state.machine;
-    cy.add(machine.getNodes());
-    cy.add(machine.getEdges());
+    const def = new StateMachineDefinition(name, machineJson);
+    cy.nodes().remove();
+    cy.add(def.getNodes());
+    cy.add(def.getEdges());
     this.runLayoutPreset();
+    this.setState({
+      machine: def,
+    });
   }
 
   newNodeClick(type) {
@@ -71,10 +84,66 @@ class App extends React.Component {
 
   removeNodeClick() {
     if (this.state.selectedNode.ref) {
-      this.state.selectedNode.ref.remove();
+      const name = this.state.selectedNode.ref.data('name');
+      const machine = this.state.machine;
+      const cy = this.cyRef;
+      machine.removeState(name);
+      cy.edges().remove();
+      cy.nodes().remove();
+      cy.add(machine.getNodes());
+      cy.add(machine.getEdges());
       this.onUnselectNodes();
-      this.cyRef.fit();
+      this.cyRef.fit(50);
     }
+  }
+
+  onNodPositionChange(node) {
+    const machine = this.state.machine;
+    console.log('node position changed:', node.data('name'), node.position());
+    // machine might not be ready on initial load
+    if (machine) {
+      machine.setNodePosition(
+        node.data('name'),
+        node.position().x,
+        node.position().y
+      );
+    }
+  }
+
+  updateNodePositions() {
+    const cy = this.cyRef;
+    const machine = this.state.machine;
+    const drawing = cy
+      .nodes()
+      .filter((node) => !!node.data('name') && node.data('type') !== 'Start')
+      .reduce((drawing, node) => {
+        const name = node.data('name');
+        drawing[name] = {
+          x: node.position().x,
+          y: node.position().y,
+        };
+        return drawing;
+      }, {});
+
+    machine.updateNodePositions(drawing);
+  }
+
+  downloadClick() {
+    const machine = this.state.machine;
+    this.updateNodePositions();
+    const filename = `${machine.name}.asl.json`;
+    const json = machine.toJson();
+    console.log(json);
+    // create a data link anchor element, click it, and then remove it
+    var dataStr =
+      'data:text/json;charset=utf-8,' +
+      encodeURIComponent(JSON.stringify(json, null, 2));
+    var downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute('href', dataStr);
+    downloadAnchorNode.setAttribute('download', filename);
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
   }
 
   onPrintClick() {
@@ -84,33 +153,33 @@ class App extends React.Component {
     });
   }
 
-  loadFlowClick() {
+  onLoadFlowClick() {
     const resp = prompt('flow file content:');
     if (resp) {
-      const cy = this.cyRef;
       const flowFile = JSON.parse(resp);
-      const def = new StateMachineDefinition('test', flowFile);
-      console.log(def.stateNames());
-      console.log(def.toJson());
-      cy.nodes().remove();
-      cy.add(def.getNodes());
-      cy.add(def.getEdges());
-      this.runLayoutPreset();
-      this.setState({
-        machine: def,
-      });
+      this.loadStateMachine('New State Machine', flowFile);
     }
   }
 
   onSaveChangesModalOk() {
+    if (typeof this.state.okAction === 'function') {
+      this.state.okAction();
+    }
     this.setState({
       showSaveChangesModal: false,
+      okAction: null,
+      cancelAction: null,
     });
   }
 
   onSaveChangesModalClose() {
+    if (typeof this.state.cancelAction === 'function') {
+      this.state.cancelAction();
+    }
     this.setState({
       showSaveChangesModal: false,
+      okAction: null,
+      cancelAction: null,
     });
   }
 
@@ -233,16 +302,25 @@ class App extends React.Component {
     }
   }
 
-  onClickLoadMachine(machine) {
-    const cy = this.cyRef;
-    const def = new StateMachineDefinition('test', machine);
-    cy.nodes().remove();
-    cy.add(def.getNodes());
-    cy.add(def.getEdges());
-    this.runLayoutPreset();
-    this.setState({
-      machine: def,
-    });
+  onClickLoadMachine(name, machine) {
+    const currMachine = this.state.machine;
+    if (currMachine.isDirty()) {
+      this.setState({
+        showSaveChangesModal: true,
+        okAction: () => {
+          console.log('ok action!');
+          // TODO save
+          this.loadStateMachine(name, machine);
+        },
+        cancelAction: () => {
+          // TODO discard changes
+          console.log('cancel action!');
+          this.loadStateMachine(name, machine);
+        },
+      });
+    } else {
+      this.loadStateMachine(name, machine);
+    }
   }
 
   onLinkNodes(start, end) {
@@ -255,6 +333,9 @@ class App extends React.Component {
       source.setNext(end.data('name'));
       cy.edges().remove();
       cy.add(machine.getEdges());
+      if (start.data('type') === 'Task') {
+        start.data('end', false);
+      }
     } else {
       console.warn('could not find source node', start);
     }
@@ -271,9 +352,11 @@ class App extends React.Component {
         <section className="Graph-Holder">
           <nav className="Graph-Controls container-fluid">
             <GraphControls
+              onViewFit={() => this.onViewFit()}
               onAlignHorizatonal={() => this.onAlignHorizatonal()}
               onAlignVertical={() => this.onAlignVertical()}
-              loadFlowClick={() => this.loadFlowClick()}
+              loadFlowClick={() => this.onLoadFlowClick()}
+              downloadClick={() => this.downloadClick()}
               removeNodeClick={() => this.removeNodeClick()}
               onPrintClick={() => this.onPrintClick()}
               newNodeClick={(type) => this.newNodeClick(type)}
@@ -301,6 +384,9 @@ class App extends React.Component {
               }}
               onDrop={(e) => this.onDropPaletteItem(e)}
               onLinkNodes={this.onLinkNodes}
+              onPositionChange={(node) => {
+                this.onNodPositionChange(node);
+              }}
             ></CytoscapeGraph>
             {hasSelection && (
               <aside className="Graph-Aside container-fluid">
@@ -320,7 +406,7 @@ class App extends React.Component {
         <div className="modal-root">
           {this.state.showSaveChangesModal && (
             <Modal
-              title="Save Changes?"
+              title="Save Changes"
               okButtonLabel="Save"
               okButtonStyle="btn-success"
               closeButtonLabel="Discard"
@@ -328,7 +414,7 @@ class App extends React.Component {
               onClickOk={() => this.onSaveChangesModalOk()}
               onClickClose={() => this.onSaveChangesModalClose()}
             >
-              Save your changes?
+              Save your changes to "{this.state.machine.name}" state machine?
             </Modal>
           )}
         </div>

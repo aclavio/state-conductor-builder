@@ -26,7 +26,7 @@ class CytoscapeGraph extends React.Component {
             'text-valign': 'center',
             width: 'label',
             height: 'label',
-            padding: '10px',
+            padding: '15px',
             shape: 'rectangle',
             label: 'data(name)',
           },
@@ -53,12 +53,19 @@ class CytoscapeGraph extends React.Component {
           selector: '.Start',
           style: {
             shape: 'rectangle',
+            'background-color': '#88aadd',
           },
         },
         {
           selector: '.Task',
           style: {
             shape: 'round-rectangle',
+          },
+        },
+        {
+          selector: '.Task[?end]',
+          style: {
+            'background-color': '#88cc88',
           },
         },
         {
@@ -77,6 +84,7 @@ class CytoscapeGraph extends React.Component {
           selector: '.Succeed',
           style: {
             shape: 'ellipse',
+            'background-color': '#88cc88',
           },
         },
         {
@@ -84,6 +92,7 @@ class CytoscapeGraph extends React.Component {
           style: {
             //shape: 'round-triangle',
             shape: 'hexagon',
+            'background-color': '#dd8888',
           },
         },
         {
@@ -185,6 +194,12 @@ class CytoscapeGraph extends React.Component {
     cy.on('unselect', 'node', (evt) => {
       if (typeof this.props.onUnselectNodes === 'function') {
         this.props.onUnselectNodes();
+      }
+    });
+
+    cy.on('position', '[name]', (evt) => {
+      if (typeof this.props.onPositionChange === 'function') {
+        this.props.onPositionChange(evt.target);
       }
     });
 

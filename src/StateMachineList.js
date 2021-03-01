@@ -26,7 +26,7 @@ class StateMachineList extends React.Component {
   handleClick(name) {
     if (typeof this.props.handleClick === 'function') {
       const machine = this.state.machines[name];
-      this.props.handleClick(machine);
+      this.props.handleClick(name, machine);
     }
   }
 
