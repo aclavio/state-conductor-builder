@@ -258,6 +258,11 @@ class StateMachineDefinition {
     this.mlDomain.drawing = drawing;
     this.dirty = true;
   }
+
+  validate() {
+    // TODO
+    return true;
+  }
 }
 
 export default StateMachineDefinition;

@@ -1,7 +1,10 @@
+const { response } = require('express');
 const express = require('express');
 const machines = require('./data/machines.js');
 
 const app = express();
+
+app.use(express.json());
 
 app.set('port', process.env.PORT || 4000);
 
@@ -41,6 +44,20 @@ app.get('/api/state-machines/:name', (req, res) => {
   }
 
   res.json(machine);
+  return;
+});
+
+app.post('/api/state-machines/:name', (req, res) => {
+  const name = req.params.name;
+  if (!name || name.length < 1) {
+    res.status(400);
+    return;
+  }
+
+  console.log(req.body);
+  machines[name] = req.body;
+
+  res.status(201);
   return;
 });
 

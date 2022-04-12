@@ -33,7 +33,7 @@ class App extends React.Component {
   }
 
   onGraphReady() {
-    this.loadStateMachine('New State Machine');
+    this.loadStateMachine('new-state-machine');
   }
 
   onViewFit() {
@@ -47,13 +47,13 @@ class App extends React.Component {
     cy.nodes().remove();
     cy.add(def.getNodes());
     cy.add(def.getEdges());
-    this.runLayoutPreset();
+    this.onRunLayoutPreset();
     this.setState({
       machine: def,
     });
   }
 
-  newNodeClick(type) {
+  onNewNodeClick(type) {
     const cy = this.cyRef;
     const machine = this.state.machine;
     const stateNames = machine.stateNames();
@@ -82,7 +82,7 @@ class App extends React.Component {
     }
   }
 
-  removeNodeClick() {
+  onRemoveNodeClick() {
     if (this.state.selectedNode.ref) {
       const name = this.state.selectedNode.ref.data('name');
       const machine = this.state.machine;
@@ -128,7 +128,7 @@ class App extends React.Component {
     machine.updateNodePositions(drawing);
   }
 
-  downloadClick() {
+  onDownloadClick() {
     const machine = this.state.machine;
     this.updateNodePositions();
     const filename = `${machine.name}.asl.json`;
@@ -183,27 +183,27 @@ class App extends React.Component {
     });
   }
 
-  runLayoutPreset() {
+  onRunLayoutPreset() {
     this.runLayout({ name: 'preset' });
   }
 
-  runLayoutGrid() {
+  onRunLayoutGrid() {
     this.runLayout({ name: 'grid' });
   }
 
-  runLayoutBreadthFirst() {
+  onRunLayoutBreadthFirst() {
     this.runLayout({ name: 'breadthfirst' });
   }
 
-  runLayoutCircle() {
+  onRunLayoutCircle() {
     this.runLayout({ name: 'circle' });
   }
 
-  runLayoutConcentric() {
+  onRunLayoutConcentric() {
     this.runLayout({ name: 'concentric' });
   }
 
-  runLayoutCose() {
+  onRunLayoutCose() {
     this.runLayout({ name: 'cose' });
   }
 
@@ -309,8 +309,26 @@ class App extends React.Component {
         showSaveChangesModal: true,
         okAction: () => {
           console.log('ok action!');
-          // TODO save
-          this.loadStateMachine(name, machine);
+          if (currMachine.validate()) {
+            // TODO save
+            fetch(
+              `/api/state-machines/${encodeURIComponent(currMachine.name)}`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(currMachine.toJson()),
+              }
+            )
+              .then((resp) => console.log(resp))
+              .catch((err) => {
+                console.error(err);
+              });
+            this.loadStateMachine(name, machine);
+          } else {
+            // TODO validation message
+          }
         },
         cancelAction: () => {
           // TODO discard changes
@@ -356,16 +374,16 @@ class App extends React.Component {
               onAlignHorizatonal={() => this.onAlignHorizatonal()}
               onAlignVertical={() => this.onAlignVertical()}
               loadFlowClick={() => this.onLoadFlowClick()}
-              downloadClick={() => this.downloadClick()}
-              removeNodeClick={() => this.removeNodeClick()}
+              downloadClick={() => this.onDownloadClick()}
+              removeNodeClick={() => this.onRemoveNodeClick()}
               onPrintClick={() => this.onPrintClick()}
-              newNodeClick={(type) => this.newNodeClick(type)}
-              runLayoutBreadthFirst={() => this.runLayoutBreadthFirst()}
-              runLayoutCircle={() => this.runLayoutCircle()}
-              runLayoutConcentric={() => this.runLayoutConcentric()}
-              runLayoutCose={() => this.runLayoutCose()}
-              runLayoutGrid={() => this.runLayoutGrid()}
-              runLayoutPreset={() => this.runLayoutPreset()}
+              newNodeClick={(type) => this.onNewNodeClick(type)}
+              runLayoutBreadthFirst={() => this.onRunLayoutBreadthFirst()}
+              runLayoutCircle={() => this.onRunLayoutCircle()}
+              runLayoutConcentric={() => this.onRunLayoutConcentric()}
+              runLayoutCose={() => this.onRunLayoutCose()}
+              runLayoutGrid={() => this.onRunLayoutGrid()}
+              runLayoutPreset={() => this.onRunLayoutPreset()}
             ></GraphControls>
           </nav>
           <div className="Graph-Viewport">

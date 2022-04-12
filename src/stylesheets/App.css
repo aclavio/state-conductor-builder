@@ -1,3 +1,8 @@
+:root {
+  --background-color-dark: #282c34;
+  --background-color-light: #f1f1f1;
+}
+
 .App {
   height: 100vh;
   text-align: start;
@@ -11,7 +16,7 @@
 }
 
 .App-header {
-  background-color: #282c34;
+  background-color: var(--background-color-dark);
   color: white;
   grid-area: head;
 }
@@ -29,7 +34,7 @@
 }
 
 .Graph-Aside {
-  background-color: #f1f1f1;
+  background-color: var(--background-color-light);
   display: block;
   position: absolute;
   right: 0;
